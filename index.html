@@ -74,29 +74,6 @@
             background-color: #1565c0;
         }
 
-        .result {
-            font-size: 18px;
-            margin-top: 15px;
-            font-weight: bold;
-        }
-
-        .progress-bar {
-            width: 80%;
-            height: 20px;
-            background-color: #ccc;
-            border-radius: 6px;
-            margin: 10px auto;
-            position: relative;
-        }
-
-        .progress {
-            height: 100%;
-            background-color: #0d47a1;
-            border-radius: 6px;
-            width: 0%;
-            transition: width 0.5s;
-        }
-
         .hidden {
             display: none;
         }
@@ -110,50 +87,80 @@
         .dark-mode .version-info {
             color: #bbb;
         }
+
+        .dark-mode-toggle {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: #0d47a1;
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            width: 40px;
+            height: 40px;
+            text-align: center;
+            line-height: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Notenrechner</h1>
-        
+
         <label>Punkte erzielt:</label>
         <input type="number" id="punkte" placeholder="Erreichte Punkte">
-        
+
         <label>Gesamtpunkte:</label>
         <input type="number" id="gesamtpunkte" placeholder="Maximale Punkte">
-        
+
         <button onclick="toggleNotenschluessel()">Individueller Notenschlüssel</button>
-        
+
         <div id="notenschluessel" class="hidden">
             <h3>Individueller Notenschlüssel</h3>
             <label>Note 1 ab (%)</label>
             <input type="number" id="note1" value="92">
-            
+
             <label>Note 2 ab (%)</label>
             <input type="number" id="note2" value="81">
-            
+
             <label>Note 3 ab (%)</label>
             <input type="number" id="note3" value="67">
-            
+
             <label>Note 4 ab (%)</label>
             <input type="number" id="note4" value="50">
-            
+
             <label>Note 5 ab (%)</label>
             <input type="number" id="note5" value="30">
+
+            <button onclick="resetNotenschluessel()">Reset</button>
+        </div>
+
+        <button onclick="toggleNiveau()">Niveau-Einstellungen</button>
+
+        <div id="niveau" class="hidden">
+            <h3>Nur für Lehrer!</h3>
+            <label>G-Niveau:</label>
+            <input type="number" id="gNiveau">
+
+            <label>M-Niveau:</label>
+            <input type="number" id="mNiveau">
+
+            <label>E-Niveau:</label>
+            <input type="number" id="eNiveau">
+
+            <button onclick="resetNiveau()">Reset</button>
         </div>
 
         <button onclick="berechneNote()">Berechnen</button>
-        
-        <div class="result" id="ergebnis"></div>
-        <div class="progress-bar">
-            <div class="progress" id="progress"></div>
-        </div>
 
-        <button onclick="window.location.href='verzeichnis.html'">Verzeichnis anzeigen</button>
-        <button onclick="toggleDarkMode()">Dark Mode umschalten</button>
+        <div class="result" id="ergebnis"></div>
+
+        <div class="dark-mode-toggle" onclick="toggleDarkMode()">🌙</div>
 
         <div class="version-info">
-            <p>Version: 1.1.1</p>
+            <p>Version: 1.2.0</p>
         </div>
     </div>
 
@@ -161,23 +168,18 @@
         function berechneNote() {
             let punkte = parseFloat(document.getElementById('punkte').value);
             let gesamtpunkte = parseFloat(document.getElementById('gesamtpunkte').value);
-            let ergebnisDiv = document.getElementById('ergebnis');
-            let progress = document.getElementById('progress');
-
             let note1 = parseFloat(document.getElementById('note1').value);
             let note2 = parseFloat(document.getElementById('note2').value);
             let note3 = parseFloat(document.getElementById('note3').value);
             let note4 = parseFloat(document.getElementById('note4').value);
             let note5 = parseFloat(document.getElementById('note5').value);
 
-            if (isNaN(punkte) || isNaN(gesamtpunkte) || gesamtpunkte <= 0) {
-                ergebnisDiv.innerHTML = "Bitte gültige Werte eingeben!";
-                return;
-            }
+            let gNiveau = parseFloat(document.getElementById('gNiveau').value);
+            let mNiveau = parseFloat(document.getElementById('mNiveau').value);
+            let eNiveau = parseFloat(document.getElementById('eNiveau').value);
 
             let prozent = (punkte / gesamtpunkte) * 100;
             let note;
-
             if (prozent >= note1) note = "1";
             else if (prozent >= note2) note = "2";
             else if (prozent >= note3) note = "3";
@@ -185,20 +187,12 @@
             else if (prozent >= note5) note = "5";
             else note = "6";
 
-            ergebnisDiv.innerHTML = `Note: ${note} (${prozent.toFixed(2)}%)`;
+            let niveau = "";
+            if (punkte >= eNiveau) niveau = "(E-Niveau)";
+            else if (punkte >= mNiveau) niveau = "(M-Niveau)";
+            else if (punkte >= gNiveau) niveau = "(G-Niveau)";
 
-            progress.style.width = prozent + "%";
-
-            speichereErgebnis(punkte, gesamtpunkte, note, prozent);
-        }
-
-        function speichereErgebnis(punkte, gesamtpunkte, note, prozent) {
-            let gespeicherteDaten = JSON.parse(localStorage.getItem('notenVerzeichnis')) || [];
-            let datum = new Date().toLocaleString();
-            let eintrag = `<div class="history-item">${datum}: ${punkte}/${gesamtpunkte} Punkte → Note ${note} (${prozent.toFixed(2)}%)</div>`;
-            
-            gespeicherteDaten.unshift(eintrag);
-            localStorage.setItem('notenVerzeichnis', JSON.stringify(gespeicherteDaten));
+            document.getElementById("ergebnis").innerHTML = `Note: ${note} (${prozent.toFixed(2)}%) ${niveau}`;
         }
 
         function toggleDarkMode() {
@@ -207,18 +201,23 @@
         }
 
         function toggleNotenschluessel() {
-            let notenDiv = document.getElementById("notenschluessel");
-            notenDiv.classList.toggle("hidden");
-            localStorage.setItem('notenschluesselVisible', !notenDiv.classList.contains("hidden"));
+            document.getElementById("notenschluessel").classList.toggle("hidden");
         }
 
-        // Dark Mode und Notenschlüssel beim Laden setzen
-        if (localStorage.getItem('darkMode') === "true") {
-            document.body.classList.add("dark-mode");
+        function toggleNiveau() {
+            document.getElementById("niveau").classList.toggle("hidden");
         }
 
-        if (localStorage.getItem('notenschluesselVisible') === "true") {
-            document.getElementById("notenschluessel").classList.remove("hidden");
+        function resetNotenschluessel() {
+            if (confirm("Willst du den Notenschlüssel wirklich zurücksetzen?")) {
+                localStorage.removeItem("notenschluessel");
+            }
+        }
+
+        function resetNiveau() {
+            if (confirm("Willst du die Niveau-Einstellungen wirklich zurücksetzen?")) {
+                localStorage.removeItem("niveau");
+            }
         }
     </script>
 </body>
